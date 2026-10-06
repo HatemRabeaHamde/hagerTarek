@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/*
+ * Color values come from src/core/constants/colors.ts (injected as --c-* variables in the root layout).
+ * Dark mode follows the OS setting, so `dark:` uses the prefers-color-scheme media query (Tailwind default).
+ */
+@theme inline {
+  --color-canvas: var(--c-canvas);
+  --color-paper: var(--c-paper);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-subtle: var(--c-subtle);
+  --color-line: var(--c-line);
+  --color-accent: var(--c-accent);
+
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-face), ui-serif, Georgia, serif;
+}
+
+/* Dark mode: OS preference, overridable both ways with data-theme on <html>. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme='dark'] *) {
+    @slot;
+  }
+}
+
+/*
+ * Layout variants — keep in sync with src/core/constants/layout.ts
+ *   split: text and 3D side by side   | stack: text on top, 3D below
+ */
+@custom-variant split (@media (min-width: 40rem) and (min-aspect-ratio: 1/1));
+/* Short landscape screens (phones held sideways) get tighter display type. */
+@custom-variant short (@media (max-height: 32rem) and (min-aspect-ratio: 1/1));
+@custom-variant stack (@media not ((min-width: 40rem) and (min-aspect-ratio: 1/1)));
+
+@layer base {
+  html {
+    background: var(--c-canvas);
+    color: var(--c-ink);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background: var(--c-canvas);
+    min-height: 100svh;
+  }
+
+  ::selection {
+    background: var(--c-ink);
+    color: var(--c-canvas);
+  }
+
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .text-display {
+    @apply font-display font-normal tracking-[-0.015em];
+    line-height: 0.98;
+  }
+
+  /* Box the 3D visual is fitted into (see VisualAnchor + useAnchorFit). */
+  .has-webgl .visual-anchor {
+    height: 44svh;
+    @variant split {
+      height: min(72svh, 48rem);
+    }
+  }
+
+  /* Sections paint their own background only when the WebGL scene is not running. */
+  .has-webgl [data-scene-surface] {
+    background: transparent !important;
+  }
+
+  /* Static images shown instead of the 3D visual (no WebGL / reduced motion). */
+  .has-webgl .webgl-fallback {
+    display: none !important;
+  }
+
+  .reveal {
+    transition:
+      opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+      transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .reveal[data-reveal='out'] {
+    opacity: 0;
+    transform: translate3d(0, 1.5rem, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal[data-reveal='out'] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Lenis recommended base styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+/* Deep (dark brand) sections re-map the neutral tokens so every child stays readable. */
+.tone-deep {
+  --c-ink: var(--p-on-deep);
+  --c-muted: color-mix(in oklab, var(--p-on-deep) 72%, transparent);
+  --c-subtle: color-mix(in oklab, var(--p-on-deep) 55%, transparent);
+  --c-line: color-mix(in oklab, var(--p-on-deep) 18%, transparent);
+  color: var(--c-ink);
+}
